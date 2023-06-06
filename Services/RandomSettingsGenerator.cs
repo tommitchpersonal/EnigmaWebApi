@@ -8,11 +8,11 @@ public class RandomSettingsGenerator : IRandomSettingsGenerator
         _arrGenerator = randomArrayGenerator;
     }
 
-    public EnigmaSettings GenerateRandomSettings()
+    public EnigmaSettings GenerateRandomSettings(int numberOfWheels)
     {
         var wheelSettings = new List<WheelSetting>();
 
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < numberOfWheels; i++)
         {
             var mappings = _arrGenerator.CreateRandomArray(0, 25, 1);
             wheelSettings.Add(new WheelSetting(){Mappings = mappings});

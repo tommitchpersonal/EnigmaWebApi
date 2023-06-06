@@ -31,8 +31,6 @@ public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 
             Response.StatusCode = 401;
             return await Task.FromResult(AuthenticateResult.Fail("Credentials were incorrect"));
-
-
         }
 
         Response.StatusCode = 401;

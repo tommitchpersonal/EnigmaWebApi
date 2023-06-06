@@ -1,4 +1,3 @@
-using EnigmaLibrary;
 using NumberRandomizer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
@@ -6,9 +5,10 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddSingleton<IEnigmaMachine, EnigmaMachine>();
+builder.Services.AddSingleton<IEnigmaWrapperFactory, EnigmaWrapperFactory>();
 builder.Services.AddSingleton<IRandomArrayGenerator, RandomArrayGenerator>();
 builder.Services.AddSingleton<IRandomSettingsGenerator, RandomSettingsGenerator>();
+builder.Services.AddSingleton<IWebSocketService, WebSocketService>();
 builder.Services.AddScoped<ICredentialRepository, CredentialRepository>();
 
 builder.Services.AddControllers();
@@ -20,7 +20,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>  
 {  
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "BasicAuth", Version = "v1" });  
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Enigma Web API", Version = "v1" });  
     c.AddSecurityDefinition("basic", new OpenApiSecurityScheme  
     {  
         Name = "Authorization",  
@@ -32,15 +32,15 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityRequirement(new OpenApiSecurityRequirement  
     {  
         {  
-                new OpenApiSecurityScheme  
+            new OpenApiSecurityScheme  
+            {  
+                Reference = new OpenApiReference  
                 {  
-                    Reference = new OpenApiReference  
-                    {  
-                        Type = ReferenceType.SecurityScheme,  
-                        Id = "basic"  
-                    }  
-                },  
-                new string[] {}  
+                    Type = ReferenceType.SecurityScheme,  
+                    Id = "basic"  
+                }  
+            },  
+            new string[] {}  
         }  
     });  
 }); 

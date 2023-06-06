@@ -1,4 +1,4 @@
 public interface IRandomSettingsGenerator
 {
-    public EnigmaSettings GenerateRandomSettings();
+    public EnigmaSettings GenerateRandomSettings(int numberOfWheels);
 }
