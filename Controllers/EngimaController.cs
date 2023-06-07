@@ -1,6 +1,4 @@
 using System.Net;
-using System.Net.WebSockets;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authorization;
@@ -209,7 +207,7 @@ public class EnigmaController : ControllerBase
             return Problem("You do not have access to this resource", statusCode: (int)HttpStatusCode.Forbidden);
         }
 
-        var settings = enigmaWrapper.EnigmaMachine.GetSettings();
+        var settings = enigmaWrapper.EnigmaMachine.Settings;
 
         if (settings == null)
         {
