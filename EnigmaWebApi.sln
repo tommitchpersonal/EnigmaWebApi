@@ -3,9 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnigmaLibrary", "..\EnigmaLibrary\EnigmaLibrary.csproj", "{5D129350-12F2-4909-AACE-77A47940E571}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnigmaLibrary", "..\EnigmaLibrary\src\EnigmaLibrary.csproj", "{5D129350-12F2-4909-AACE-77A47940E571}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnigmaWebApi", "EnigmaWebApi.csproj", "{EB5CD434-0820-47B5-9EFB-8A2D5416CF54}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnigmaWebApi", "src\EnigmaWebApi.csproj", "{EB5CD434-0820-47B5-9EFB-8A2D5416CF54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NumberRandomizer", "..\NumberRandomizer\src\NumberRandomizer.csproj", "{5DA2AB83-BFA1-4CE3-B808-AABD684B4C1A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnigmaWebApiTests", "tests\EnigmaWebApiTests.csproj", "{DBB437E4-B890-455E-A47C-D07DEEC72356}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +28,13 @@ Global
 		{EB5CD434-0820-47B5-9EFB-8A2D5416CF54}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB5CD434-0820-47B5-9EFB-8A2D5416CF54}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB5CD434-0820-47B5-9EFB-8A2D5416CF54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DA2AB83-BFA1-4CE3-B808-AABD684B4C1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DA2AB83-BFA1-4CE3-B808-AABD684B4C1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DA2AB83-BFA1-4CE3-B808-AABD684B4C1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DA2AB83-BFA1-4CE3-B808-AABD684B4C1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBB437E4-B890-455E-A47C-D07DEEC72356}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBB437E4-B890-455E-A47C-D07DEEC72356}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBB437E4-B890-455E-A47C-D07DEEC72356}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBB437E4-B890-455E-A47C-D07DEEC72356}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
