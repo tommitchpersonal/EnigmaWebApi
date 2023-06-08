@@ -45,8 +45,6 @@ builder.Services.AddSwaggerGen(c =>
     });  
 }); 
 
-builder.Services.Configure<DefaultSettings>(builder.Configuration.GetSection(DefaultSettings.Key));
-
 var username = builder.Configuration["Credentials:Username"];
 var password = builder.Configuration["Credentials:Password"];
 

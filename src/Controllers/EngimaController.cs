@@ -1,6 +1,5 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authorization;
 
 namespace EnigmaWebApi.Controllers;
@@ -11,16 +10,14 @@ public class EnigmaController : ControllerBase
 {
     private ILogger<EnigmaController> _logger;
     private IEnigmaWrapperFactory _enigmaWrapperFactory;
-    private DefaultSettings _settings;
     private IRandomSettingsGenerator _settingsGenerator;
     private ICredentialRepository _credentialRepository;
     private IWebSocketService _webSocketService;
     private static Dictionary<string, IEnigmaWrapper> _enigmaWrapperDictionary = new();
-    public EnigmaController(IEnigmaWrapperFactory enigmaWrapperFactory, ILogger<EnigmaController> logger, IOptions<DefaultSettings> options, IRandomSettingsGenerator settingsGenerator, ICredentialRepository credRepository, IWebSocketService webSocketService)
+    public EnigmaController(IEnigmaWrapperFactory enigmaWrapperFactory, ILogger<EnigmaController> logger, IRandomSettingsGenerator settingsGenerator, ICredentialRepository credRepository, IWebSocketService webSocketService)
     {
         _enigmaWrapperFactory = enigmaWrapperFactory;
         _logger = logger;
-        _settings = options.Value;
         _settingsGenerator = settingsGenerator;
         _credentialRepository = credRepository;
         _webSocketService = webSocketService;
