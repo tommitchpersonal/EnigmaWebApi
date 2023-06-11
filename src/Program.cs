@@ -1,6 +1,14 @@
+using log4net;
 using NumberRandomizer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
+
+// .NET core no longer uses AssemblyInfo.cs. I think the cleanest place to put it is here.
+[assembly: log4net.Config.XmlConfigurator(ConfigFile = "log4net.config")]
+
+var log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
+
+log.Info("Starting Enigma Web API");
 
 var builder = WebApplication.CreateBuilder(args);
 

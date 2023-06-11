@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using log4net;
 
 namespace EnigmaWebApi.Controllers;
 
@@ -8,16 +9,15 @@ namespace EnigmaWebApi.Controllers;
 [Route("[controller]")]
 public class EnigmaController : ControllerBase
 {
-    private ILogger<EnigmaController> _logger;
+    private ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
     private IEnigmaWrapperFactory _enigmaWrapperFactory;
     private IRandomSettingsGenerator _settingsGenerator;
     private ICredentialRepository _credentialRepository;
     private IWebSocketService _webSocketService;
     private static Dictionary<string, IEnigmaWrapper> _enigmaWrapperDictionary = new();
-    public EnigmaController(IEnigmaWrapperFactory enigmaWrapperFactory, ILogger<EnigmaController> logger, IRandomSettingsGenerator settingsGenerator, ICredentialRepository credRepository, IWebSocketService webSocketService)
+    public EnigmaController(IEnigmaWrapperFactory enigmaWrapperFactory, IRandomSettingsGenerator settingsGenerator, ICredentialRepository credRepository, IWebSocketService webSocketService)
     {
         _enigmaWrapperFactory = enigmaWrapperFactory;
-        _logger = logger;
         _settingsGenerator = settingsGenerator;
         _credentialRepository = credRepository;
         _webSocketService = webSocketService;
@@ -35,17 +35,21 @@ public class EnigmaController : ControllerBase
     {
         try
         {
+            _log.Info("Received add enigma machine request");
+
             var headers = HttpContext.Request.Headers;
 
             var loggedInUser = User.Identities?.FirstOrDefault()?.Claims?.FirstOrDefault()?.Value;
 
             if (string.IsNullOrEmpty(loggedInUser))
             {
+                _log.Error($"User {loggedInUser} is forbidden from creating this resource.");
                 return Problem("You do not have access to this resource", statusCode: (int)HttpStatusCode.Forbidden);
             }
 
             if (request == null || !request.IsValid())
             {
+                _log.Error("Received malformed request");
                 return Problem("Bad Request", statusCode: (int)HttpStatusCode.BadRequest);
             }
 
@@ -56,11 +60,13 @@ public class EnigmaController : ControllerBase
 
             if (request.UseRandomWheels)
             {
+                _log.Info($"Creating new enigma machine {guid} with random wheel settings");
                 settings = _settingsGenerator.GenerateRandomSettings(request.NumberOfWheels);
                 enigmaWrapper = _enigmaWrapperFactory.CreateEnigmaWrapper(loggedInUser, settings);
             }
             else
             {
+                _log.Info($"Creating new enigma machine {guid} with user defined wheel settings");
                 settings = request.EnigmaMachineSettings!;
                 enigmaWrapper = _enigmaWrapperFactory.CreateEnigmaWrapper(loggedInUser, settings);
             }
@@ -69,17 +75,18 @@ public class EnigmaController : ControllerBase
 
             var response = new AddEnigmaResponse(guid, settings);
 
+            _log.Info($"Machine {guid} successfully created");
             return Ok(response);
         }
         catch(Exception ex)
         {
+            _log.Error("Unrecognised error when creating new enigma machine", ex);
             return Problem($"Unrecognised error: {ex}", statusCode: (int)HttpStatusCode.InternalServerError);
-
         }
     }
 
     [HttpPost]
-    [Route("encrypt/{id?}")]
+    [Route("{id?}/encrypt")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(EncryptionResponse))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -94,24 +101,30 @@ public class EnigmaController : ControllerBase
         {
             if (string.IsNullOrEmpty(request.PlainText))
             {
-                // Log Error
-                return Problem("Request string was null or empty", statusCode: (int)HttpStatusCode.BadRequest);
+                const string err = "Request string was null or empty";
+                _log.Error(err);
+                return Problem(err, statusCode: (int)HttpStatusCode.BadRequest);
             }
 
             if (!request.IsValid())
             {
-                // Log Error
-                return Problem("Request string contained invalid characters", statusCode: (int)HttpStatusCode.BadRequest);
+                const string  err = "Request string contained invalid characters";
+                _log.Error(err);
+                return Problem(err, statusCode: (int)HttpStatusCode.BadRequest);
             }
 
             if (!_enigmaWrapperDictionary.TryGetValue(id, out var enigmaWrapper))
             {
-                return Problem("Enigma machine ID not found", statusCode: (int)HttpStatusCode.NotFound);
+                var err = $"Enigma machine {id} not found";
+                _log.Error(err);
+                return Problem(err, statusCode: (int)HttpStatusCode.NotFound);
             }
 
             if (!UserHasAccessToResource(enigmaWrapper))
             {
-                return Problem("You do not have access to this resource", statusCode: (int)HttpStatusCode.Forbidden);
+                const string err = "User does not have access to this resource";
+                _log.Error(err);
+                return Problem(err, statusCode: (int)HttpStatusCode.Forbidden);
             }
 
             var CipherText = enigmaWrapper.EnigmaMachine.Encrypt(request.PlainText);
@@ -122,21 +135,26 @@ public class EnigmaController : ControllerBase
                 CipherText = CipherText
             };
 
+            _log.Info($"Enigma machine {id} has successfully encrypted the plain text");
+
             return Ok(responseContent);
         }
         catch (EncryptionException)
         {
-            return Problem("Enigma machine is not configured. Call update endpoint to configure", statusCode: (int)HttpStatusCode.Conflict);         
+            var err = $"Enigma machine {id} is not configured.";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.Conflict);         
         }
         catch (Exception ex)
         {
+            _log.Error($"Unrecognised error", ex);
             return Problem($"Unrecognised error: {ex}", statusCode: (int)HttpStatusCode.InternalServerError);
         }
 
     }
 
     [HttpPut]
-    [Route("update/{id?}")]
+    [Route("{id?}/update")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UpdateSettingsResponse))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -150,24 +168,32 @@ public class EnigmaController : ControllerBase
         {
             if (request == null || !request.IsValid())
             {
-                return Problem("Bad Request", statusCode: (int)HttpStatusCode.BadRequest);
+                const string err = "Bad Request. Request is null or invalid";
+                _log.Error(err);
+                return Problem(err, statusCode: (int)HttpStatusCode.BadRequest);
             }
 
             if (!_enigmaWrapperDictionary.TryGetValue(id, out var enigmaWrapper))
             {
-                return Problem("Enigma machine ID not found", statusCode: (int)HttpStatusCode.NotFound);
+                var err = $"Enigma machine {id} not found";
+                _log.Error(err);
+                return Problem(err, statusCode: (int)HttpStatusCode.NotFound);
             }
 
             if (!UserHasAccessToResource(enigmaWrapper))
             {
-                return Problem("You do not have access to this resource", statusCode: (int)HttpStatusCode.Forbidden);
+                const string err = "User does not have access to this resource";
+                _log.Error(err);
+                return Problem(err, statusCode: (int)HttpStatusCode.Forbidden);
             }
 
             var newSettings = request.UseRandomWheels ? _settingsGenerator.GenerateRandomSettings(request.NumberOfWheels) : request.EnigmaMachineSettings;
 
             if (newSettings == null)
             {
-                return Problem("Bad Request", statusCode: (int)HttpStatusCode.BadRequest);
+                const string err = "Bad Request. New settings are null or invalid";
+                _log.Error(err);
+                return Problem(err, statusCode: (int)HttpStatusCode.BadRequest);
             }
 
             enigmaWrapper.EnigmaMachine.UpdateSettings(newSettings);
@@ -177,16 +203,19 @@ public class EnigmaController : ControllerBase
                 NewSettings = newSettings
             };
 
+            _log.Info("Settings have been successfully updated.");
+
             return Ok(responseContent);
         }
         catch (Exception ex)
         {
+            _log.Error($"Unrecognised error", ex);
             return Problem($"Unrecognised error: {ex}", statusCode: (int)HttpStatusCode.InternalServerError);
         }
     }
 
     [HttpGet]
-    [Route("settings/{id?}")]
+    [Route("{id?}/settings")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UpdateSettingsResponse))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -196,19 +225,25 @@ public class EnigmaController : ControllerBase
     {
         if (!_enigmaWrapperDictionary.TryGetValue(id, out var enigmaWrapper))
         {
-            return Problem("Enigma machine ID not found", statusCode: (int)HttpStatusCode.NotFound);
+            var err = $"Enigma machine {id} not found";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.NotFound);
         }
 
         if (!UserHasAccessToResource(enigmaWrapper))
         {
-            return Problem("You do not have access to this resource", statusCode: (int)HttpStatusCode.Forbidden);
+            const string err = "User does not have access to this resource";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.Forbidden);
         }
 
         var settings = enigmaWrapper.EnigmaMachine.Settings;
 
         if (settings == null)
         {
-            return Problem("Cannot return settings as they have not been set", statusCode: (int)HttpStatusCode.Conflict);
+            var err = $"Cannot return settings for {id} as they have not been set";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.Conflict);
         }
 
         var response = new UpdateSettingsResponse()
@@ -216,11 +251,12 @@ public class EnigmaController : ControllerBase
             NewSettings = settings
         };
 
+        _log.Info($"Successfully obtained settings for {id}");
         return Ok(response);
     }
 
     [HttpPost]
-    [Route("reset/{id?}")]
+    [Route("{id?}/reset")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -231,15 +267,21 @@ public class EnigmaController : ControllerBase
     {
         if (!_enigmaWrapperDictionary.TryGetValue(id, out var enigmaWrapper))
         {
-            return Problem("Enigma machine ID not found", statusCode: (int)HttpStatusCode.NotFound);
+            var err = $"Enigma machine {id} not found";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.NotFound);
         }
 
         if (!UserHasAccessToResource(enigmaWrapper))
         {
-            return Problem("You do not have access to this resource", statusCode: (int)HttpStatusCode.Forbidden);
+            const string err = "User does not have access to this resource";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.Forbidden);
         }
 
         enigmaWrapper.EnigmaMachine.Reset();
+
+        _log.Info($"Successfully reset machine: {id}");
         return NoContent();
     }
 
@@ -254,21 +296,27 @@ public class EnigmaController : ControllerBase
     {
         if (!_enigmaWrapperDictionary.TryGetValue(id, out var enigmaWrapper))
         {
-            return Problem("Enigma machine ID not found", statusCode: (int)HttpStatusCode.NotFound);
+            var err = $"Enigma machine {id} not found";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.NotFound);
         }
 
         if (!UserHasAccessToResource(enigmaWrapper))
         {
-            return Problem("You do not have access to this resource", statusCode: (int)HttpStatusCode.Forbidden);
+            const string err = "User does not have access to this resource";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.Forbidden);
         }
 
         _enigmaWrapperDictionary.Remove(id);
+
+        _log.Info($"Removed machine: {id}");
         return NoContent();
     }
 
     [HttpGet]
     [Authorize]
-    [Route("/WebSocketEncryption/{id?}")]
+    [Route("{id?}/WebsocketEncryption")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -279,12 +327,16 @@ public class EnigmaController : ControllerBase
     {
         if (!_enigmaWrapperDictionary.TryGetValue(id, out var enigmaWrapper))
         {
-            return Problem("Enigma machine ID not found", statusCode: (int)HttpStatusCode.NotFound);
+            var err = $"Enigma machine {id} not found";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.NotFound);
         }
 
         if (!UserHasAccessToResource(enigmaWrapper))
         {
-            return Problem("You do not have access to this resource", statusCode: (int)HttpStatusCode.Forbidden);
+            const string err = "User does not have access to this resource";
+            _log.Error(err);
+            return Problem(err, statusCode: (int)HttpStatusCode.Forbidden);
         }
 
         try
@@ -299,6 +351,7 @@ public class EnigmaController : ControllerBase
             else
             {
                 HttpContext.Response.StatusCode = 400;
+                _log.Error("WebSocket endpoint received non-websocket request");
                 return Problem("Bad Request", statusCode: (int)HttpStatusCode.BadRequest);
             }
 
@@ -307,6 +360,7 @@ public class EnigmaController : ControllerBase
         {
             HttpContext.Response.StatusCode = 500;
             enigmaWrapper.EnigmaMachine.Reset();
+            _log.Error("Unrecognised error", ex);
             return Problem($"Unrecognised error: {ex}", statusCode: (int)HttpStatusCode.InternalServerError);
 
         }
